@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Ore PGL1",
+    "lifetime": 2,
+    "lastReset": "2024-11-10T19:18:12.745Z"
+  },
+  {
+    "name": "Ore PGL2",
+    "lifetime": 2,
+    "lastReset": "2024-11-13T19:18:14.988Z"
+  },
+  {
+    "name": "Ore Met",
+    "lifetime": 4,
+    "lastReset": "2024-11-13T19:18:17.037Z"
+  },
+  {
+    "name": "Kam Ref",
+    "lifetime": 7,
+    "lastReset": "2024-11-04T19:18:28.689Z"
+  },
+  {
+    "name": "Vaer Trykker",
+    "lifetime": 15,
+    "lastReset": "2024-11-02T19:18:27.417Z"
+  }
+]

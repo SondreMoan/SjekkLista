@@ -1,0 +1,257 @@
+[
+  {
+    "timestamp": "2024-11-14T10:09:43.857Z",
+    "message": "Kunne ikke koble til StreamDeck: Ingen StreamDeck enheter funnet",
+    "type": "error"
+  },
+  {
+    "timestamp": "2024-11-14T10:09:43.116Z",
+    "message": "Streamdeck-kontroller startet",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:40:39.369Z",
+    "message": "Nattmodus aktivert - lysstyrke satt til 0%",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:40:00.972Z",
+    "message": "StreamDeck feil: undefined",
+    "type": "error"
+  },
+  {
+    "timestamp": "2024-11-13T19:39:39.368Z",
+    "message": "Nattmodus aktivert - lysstyrke satt til 0%",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:38:39.368Z",
+    "message": "Nattmodus aktivert - lysstyrke satt til 0%",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:37:39.367Z",
+    "message": "Nattmodus aktivert - lysstyrke satt til 0%",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:36:39.365Z",
+    "message": "Nattmodus aktivert - lysstyrke satt til 0%",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:35:39.364Z",
+    "message": "Nattmodus aktivert - lysstyrke satt til 0%",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:34:39.364Z",
+    "message": "Nattmodus aktivert - lysstyrke satt til 0%",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:33:39.364Z",
+    "message": "Nattmodus aktivert - lysstyrke satt til 0%",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:33:13.724Z",
+    "message": "Nattmodus gjenopptatt - lysstyrke tilbake til 0%",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:32:43.723Z",
+    "message": "Knapp 15 er kun for visning av dato",
+    "type": "warning"
+  },
+  {
+    "timestamp": "2024-11-13T19:32:43.722Z",
+    "message": "Midlertidig økning av lysstyrke til 80%",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:32:40.325Z",
+    "message": "Streamdeck-kontroller startet",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:32:39.363Z",
+    "message": "Nattmodus-funksjonalitet aktivert",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:32:39.363Z",
+    "message": "Nattmodus aktivert - lysstyrke satt til 0%",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:32:38.972Z",
+    "message": "Streamdeck-kontroller startet",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:32:14.575Z",
+    "message": "Nattmodus aktivert - lysstyrke satt til 0%",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:31:14.573Z",
+    "message": "Nattmodus aktivert - lysstyrke satt til 0%",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:30:52.334Z",
+    "message": "Nattmodus gjenopptatt - lysstyrke tilbake til 0%",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:30:22.333Z",
+    "message": "Knapp 14 er kun for visning av dato",
+    "type": "warning"
+  },
+  {
+    "timestamp": "2024-11-13T19:30:22.333Z",
+    "message": "Midlertidig økning av lysstyrke til 80%",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:30:15.531Z",
+    "message": "Streamdeck-kontroller startet",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:30:14.571Z",
+    "message": "Nattmodus-funksjonalitet aktivert",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:30:14.571Z",
+    "message": "Nattmodus aktivert - lysstyrke satt til 0%",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:30:14.194Z",
+    "message": "Streamdeck-kontroller startet",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:29:35.308Z",
+    "message": "Nattmodus aktivert - lysstyrke satt til 0%",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:29:00.138Z",
+    "message": "Knapp 11 er kun for visning av dato",
+    "type": "warning"
+  },
+  {
+    "timestamp": "2024-11-13T19:28:59.878Z",
+    "message": "Knapp 12 er kun for visning av dato",
+    "type": "warning"
+  },
+  {
+    "timestamp": "2024-11-13T19:28:59.636Z",
+    "message": "Knapp 13 er kun for visning av dato",
+    "type": "warning"
+  },
+  {
+    "timestamp": "2024-11-13T19:28:59.239Z",
+    "message": "Knapp 14 er kun for visning av dato",
+    "type": "warning"
+  },
+  {
+    "timestamp": "2024-11-13T19:28:53.146Z",
+    "message": "Knapp 6 er kun for visning av status",
+    "type": "warning"
+  },
+  {
+    "timestamp": "2024-11-13T19:28:52.883Z",
+    "message": "Knapp 7 er kun for visning av status",
+    "type": "warning"
+  },
+  {
+    "timestamp": "2024-11-13T19:28:52.563Z",
+    "message": "Knapp 8 er kun for visning av status",
+    "type": "warning"
+  },
+  {
+    "timestamp": "2024-11-13T19:28:52.189Z",
+    "message": "Knapp 9 er kun for visning av status",
+    "type": "warning"
+  },
+  {
+    "timestamp": "2024-11-13T19:28:51.942Z",
+    "message": "Knapp 9 er kun for visning av status",
+    "type": "warning"
+  },
+  {
+    "timestamp": "2024-11-13T19:28:46.946Z",
+    "message": "Knapp 11 er kun for visning av dato",
+    "type": "warning"
+  },
+  {
+    "timestamp": "2024-11-13T19:28:46.522Z",
+    "message": "Knapp 12 er kun for visning av dato",
+    "type": "warning"
+  },
+  {
+    "timestamp": "2024-11-13T19:28:45.886Z",
+    "message": "Knapp 13 er kun for visning av dato",
+    "type": "warning"
+  },
+  {
+    "timestamp": "2024-11-13T19:28:45.255Z",
+    "message": "Knapp 14 er kun for visning av dato",
+    "type": "warning"
+  },
+  {
+    "timestamp": "2024-11-13T19:28:42.296Z",
+    "message": "Knapp 15 er kun for visning av dato",
+    "type": "warning"
+  },
+  {
+    "timestamp": "2024-11-13T19:28:40.589Z",
+    "message": "Knapp 15 er kun for visning av dato",
+    "type": "warning"
+  },
+  {
+    "timestamp": "2024-11-13T19:28:36.268Z",
+    "message": "Streamdeck-kontroller startet",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:28:35.306Z",
+    "message": "Nattmodus-funksjonalitet aktivert",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:28:35.305Z",
+    "message": "Nattmodus aktivert - lysstyrke satt til 0%",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:28:34.922Z",
+    "message": "Streamdeck-kontroller startet",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:27:38.804Z",
+    "message": "Streamdeck-kontroller startet",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:27:37.440Z",
+    "message": "Streamdeck-kontroller startet",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:27:37.435Z",
+    "message": "Nattmodus-funksjonalitet aktivert",
+    "type": "info"
+  },
+  {
+    "timestamp": "2024-11-13T19:27:37.435Z",
+    "message": "Feil ved oppdatering av lysstyrke: Cannot read properties of null (reading 'setBrightness')",
+    "type": "error"
+  }
+]

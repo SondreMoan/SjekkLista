@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "@elgato-stream-deck/node": "^7.0.2",
+    "express": "^4.21.1",
+    "moment": "^2.30.1",
+    "playwright": "^1.48.2",
+    "sharp": "^0.33.5",
+    "ws": "^8.18.0"
+  }
+}
