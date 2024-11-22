@@ -36,9 +36,9 @@ class StreamDeckLifecycle {
             { name: 'Ore Met', lifetime: 4, lastReset: null },
             { name: 'Kam Ref', lifetime: 5, lastReset: null },
             { name: 'Vaer Trykker', lifetime: 3, lastReset: null },
-            { name: 'Enhet 6', lifetime: 3, lastReset: null },
-            { name: 'Enhet 7', lifetime: 4, lastReset: null },
-            { name: 'Enhet 8', lifetime: 5, lastReset: null },
+            { name: 'MIK PGL1', lifetime: 3, lastReset: null },
+            { name: 'MIK PGL2', lifetime: 4, lastReset: null },
+            { name: 'MIK MET', lifetime: 5, lastReset: null },
             { name: 'Enhet 9', lifetime: 2, lastReset: null },
             { name: 'Enhet 10', lifetime: 6, lastReset: null }
         ];
@@ -92,6 +92,7 @@ class StreamDeckLifecycle {
         this.isProcessingQueue = false;
         this.activeProcesses = new Set();
         this.currentPage = 0;  // Legg til sidesporing
+        this.pageBuffers = new Map(); // Cache for side-buffers
     }
 
     async loadData() {
@@ -358,49 +359,15 @@ class StreamDeckLifecycle {
             console.log('Kobler til StreamDeck...');
             await this.openStreamDeck();
             
-            // Flytt setupNightMode() hit, etter at StreamDeck er initialisert
-            this.setupNightMode();
+            // Cache side-buffers ved oppstart
+            await this.cachePageBuffers();
             
-            // Webserver er allerede satt opp i konstruktøren via setupWebServer()
-            console.log('Webserver er allerede startet...');
-
-            // Last statiske bilder for gjeldende side
-            for (let i = 0; i < 5; i++) {
-                try {
-                    const imageBuffer = await sharp(this.staticImages[this.currentPage][i])
-                        .resize(72, 72)
-                        .removeAlpha()
-                        .toBuffer();
-                    
-                    const preparedBuffer = await this.prepareImageBuffer(imageBuffer);
-                    await this.deck.fillKeyBuffer(i, preparedBuffer);
-                } catch (error) {
-                    console.error(`Feil ved lasting av statisk bilde ${i + 1}:`, error);
-                    throw error;
-                }
-            }
-
-            // Oppdater knapper kun for gjeldende side
-            console.log('Oppdaterer knapper...');
-            const pageOffset = this.currentPage * 5;
-            const startIndex = pageOffset;
-            const endIndex = Math.min(startIndex + 5, this.devices.length);
-
-            for (let i = startIndex; i < endIndex; i++) {
-                const device = this.devices[i];
-                const displayIndex = i - pageOffset;
-                console.log(`Genererer bilde for ${device.name}...`);
-                
-                try {
-                    const statusBuffer = await this.generateHTMLImage(device, true);
-                    const dateBuffer = await this.generateHTMLImage(device, false);
-                    
-                    await this.deck.fillKeyBuffer(displayIndex + 5, statusBuffer);
-                    await this.deck.fillKeyBuffer(displayIndex + 10, dateBuffer);
-                } catch (error) {
-                    console.error(`Feil ved generering av bilder for ${device.name}:`, error);
-                }
-            }
+            // Vis første side umiddelbart etter caching
+            console.log('Viser første side...');
+            await this.switchPage(0);
+            
+            // Sett opp nattmodus etter at StreamDeck er initialisert
+            this.setupNightMode();
 
             console.log('Initialisering fullført');
             this.addLog('Streamdeck-kontroller startet', 'info');
@@ -833,37 +800,40 @@ class StreamDeckLifecycle {
         if (newPage < 0 || newPage > 1) return;
         
         try {
-            // Forbered alle buffers for den nye siden
             const buffers = new Map();
             
-            // Last statiske bilder
-            for (let i = 0; i < 5; i++) {
-                const imageBuffer = await sharp(this.staticImages[newPage][i])
-                    .resize(72, 72)
-                    .removeAlpha()
-                    .toBuffer();
-                
-                const preparedBuffer = await this.prepareImageBuffer(imageBuffer);
-                buffers.set(i, preparedBuffer);
+            // Bruk cached statiske bilder
+            const cachedPage = this.pageBuffers.get(newPage);
+            if (cachedPage) {
+                for (const [index, buffer] of cachedPage.entries()) {
+                    buffers.set(index, buffer);
+                }
             }
             
-            // Forbered dynamiske bilder
+            // Generer kun dynamiske bilder
             const pageOffset = newPage * 5;
             const startIndex = pageOffset;
             const endIndex = Math.min(startIndex + 5, this.devices.length);
             
+            const dynamicPromises = [];
             for (let i = startIndex; i < endIndex; i++) {
                 const device = this.devices[i];
                 const displayIndex = i - pageOffset;
                 
-                const statusBuffer = await this.generateHTMLImage(device, true);
-                const dateBuffer = await this.generateHTMLImage(device, false);
-                
-                buffers.set(displayIndex + 5, statusBuffer);
-                buffers.set(displayIndex + 10, dateBuffer);
+                dynamicPromises.push(
+                    (async () => {
+                        const statusBuffer = await this.generateHTMLImage(device, true);
+                        const dateBuffer = await this.generateHTMLImage(device, false);
+                        buffers.set(displayIndex + 5, statusBuffer);
+                        buffers.set(displayIndex + 10, dateBuffer);
+                    })()
+                );
             }
             
-            // Oppdater currentPage før vi viser knappene
+            // Vent på at alle dynamiske bilder er generert
+            await Promise.all(dynamicPromises);
+            
+            // Oppdater siden før vi viser knappene
             this.currentPage = newPage;
             
             // Vis alle knapper samtidig
@@ -903,6 +873,26 @@ class StreamDeckLifecycle {
         } catch (error) {
             console.error('Feil ved oppdatering av alle knapper:', error);
             throw error;
+        }
+    }
+
+    async cachePageBuffers() {
+        // Cache buffers for begge sider
+        for (let page = 0; page <= 1; page++) {
+            const buffers = new Map();
+            
+            // Cache statiske bilder
+            for (let i = 0; i < 5; i++) {
+                const imageBuffer = await sharp(this.staticImages[page][i])
+                    .resize(72, 72)
+                    .removeAlpha()
+                    .toBuffer();
+                
+                const preparedBuffer = await this.prepareImageBuffer(imageBuffer);
+                buffers.set(i, preparedBuffer);
+            }
+            
+            this.pageBuffers.set(page, buffers);
         }
     }
 }

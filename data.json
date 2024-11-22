@@ -12,7 +12,7 @@
   {
     "name": "Ore Met",
     "lifetime": 4,
-    "lastReset": "2024-11-22T15:01:15.532Z"
+    "lastReset": "2024-11-22T15:43:15.023Z"
   },
   {
     "name": "Kam Ref",
@@ -25,24 +25,24 @@
     "lastReset": "2024-11-22T15:01:27.370Z"
   },
   {
-    "name": "Enhet 6",
+    "name": "MIK PGL1",
     "lifetime": 3,
     "lastReset": "2024-11-22T15:01:31.645Z"
   },
   {
-    "name": "Enhet 7",
+    "name": "MIK PGL2",
     "lifetime": 4,
-    "lastReset": "2024-11-22T15:03:54.573Z"
+    "lastReset": "2024-11-22T15:43:21.453Z"
   },
   {
-    "name": "Enhet 8",
+    "name": "MIK MET",
     "lifetime": 5,
     "lastReset": "2024-11-22T15:01:40.580Z"
   },
   {
     "name": "Enhet 9",
     "lifetime": 0,
-    "lastReset": null
+    "lastReset": "2024-11-22T15:43:17.684Z"
   },
   {
     "name": "Enhet 10",
