@@ -12,13 +12,22 @@ class StreamDeckLifecycle {
         this.deck = null;
         this.BUFFER_SIZE = 15552;
         this.dataPath = path.join(__dirname, 'data.json');
-        this.staticImages = [
-            '/Users/sondremoan/streamdeck/png/Knapp-0.png',
-            '/Users/sondremoan/streamdeck/png/Knapp-1.png',
-            '/Users/sondremoan/streamdeck/png/Knapp-2.png',
-            '/Users/sondremoan/streamdeck/png/Knapp-3.png',
-            '/Users/sondremoan/streamdeck/png/Knapp-4.png'
-        ];
+        this.staticImages = {
+            0: [
+                './png/Knapp-0.png',
+                './png/Knapp-1.png',
+                './png/Knapp-2.png',
+                './png/Knapp-3.png',
+                './png/Knapp-4.png'
+            ],
+            1: [
+                './png/mik-pgl1.png',
+                './png/mik-pgl2.png',
+                './png/mik-met.png',
+                './png/mork-blaa.png',
+                './png/mork-blaa.png'
+            ]
+        };
         
         // Standard enhetsdata
         this.defaultDevices = [
@@ -26,7 +35,12 @@ class StreamDeckLifecycle {
             { name: 'Ore PGL2', lifetime: 7, lastReset: null },
             { name: 'Ore Met', lifetime: 4, lastReset: null },
             { name: 'Kam Ref', lifetime: 5, lastReset: null },
-            { name: 'Vaer Trykker', lifetime: 3, lastReset: null }
+            { name: 'Vaer Trykker', lifetime: 3, lastReset: null },
+            { name: 'Enhet 6', lifetime: 3, lastReset: null },
+            { name: 'Enhet 7', lifetime: 4, lastReset: null },
+            { name: 'Enhet 8', lifetime: 5, lastReset: null },
+            { name: 'Enhet 9', lifetime: 2, lastReset: null },
+            { name: 'Enhet 10', lifetime: 6, lastReset: null }
         ];
         
         this.devices = [];
@@ -34,7 +48,7 @@ class StreamDeckLifecycle {
         process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = true;
         this.puppeteerInstance = null;  // Lagre én Puppeteer-instans
         this.imageCache = new Map();    // Cache for genererte bilder
-        this.pauseImage = '/Users/sondremoan/streamdeck/png/nrk.png';  // Legg til denne linjen
+        this.pauseImage = './png/nrk.png';  // Legg til denne linjen
         this.setupShutdownHandler();  // Legg til denne linjen
         this.processingButtons = new Set();
         this.setupErrorHandlers();
@@ -77,6 +91,7 @@ class StreamDeckLifecycle {
         this.buttonQueue = [];
         this.isProcessingQueue = false;
         this.activeProcesses = new Set();
+        this.currentPage = 0;  // Legg til sidesporing
     }
 
     async loadData() {
@@ -276,28 +291,33 @@ class StreamDeckLifecycle {
         try {
             await this.ensureBrowser();
             
+            const pageOffset = this.currentPage * 5;
+            const startIndex = pageOffset;
+            const endIndex = startIndex + 5;
+            
             if (deviceIndex !== null) {
+                // Hvis deviceIndex er utenfor gjeldende side, ikke gjør noe
+                if (deviceIndex < startIndex || deviceIndex >= endIndex) return;
+                
                 const device = this.devices[deviceIndex];
+                const displayIndex = deviceIndex - pageOffset;
                 const statusBuffer = await this.generateHTMLImage(device, true);
                 const dateBuffer = await this.generateHTMLImage(device, false);
                 
-                // Oppdater knappene sekvensielt
-                await this.deck.fillKeyBuffer(deviceIndex + 5, statusBuffer);
-                await this.deck.fillKeyBuffer(deviceIndex + 10, dateBuffer);
+                await this.deck.fillKeyBuffer(displayIndex + 5, statusBuffer);
+                await this.deck.fillKeyBuffer(displayIndex + 10, dateBuffer);
                 return;
             }
             
-            // Oppdater alle knapper sekvensielt
-            for (let i = 0; i < this.devices.length; i++) {
+            // Oppdater alle knapper for gjeldende side
+            for (let i = startIndex; i < endIndex; i++) {
                 const device = this.devices[i];
+                const displayIndex = i - pageOffset;
                 const statusBuffer = await this.generateHTMLImage(device, true);
                 const dateBuffer = await this.generateHTMLImage(device, false);
                 
-                await this.deck.fillKeyBuffer(i + 5, statusBuffer);
-                await this.deck.fillKeyBuffer(i + 10, dateBuffer);
-                
-                // Kort pause mellom hver enhet
-                await new Promise(resolve => setTimeout(resolve, 50));
+                await this.deck.fillKeyBuffer(displayIndex + 5, statusBuffer);
+                await this.deck.fillKeyBuffer(displayIndex + 10, dateBuffer);
             }
             
         } catch (error) {
@@ -344,38 +364,39 @@ class StreamDeckLifecycle {
             // Webserver er allerede satt opp i konstruktøren via setupWebServer()
             console.log('Webserver er allerede startet...');
 
-            // Last og konverter de statiske bildene
+            // Last statiske bilder for gjeldende side
             for (let i = 0; i < 5; i++) {
                 try {
-                    // Først last bildet med sharp
-                    const imageBuffer = await sharp(this.staticImages[i])
+                    const imageBuffer = await sharp(this.staticImages[this.currentPage][i])
                         .resize(72, 72)
                         .removeAlpha()
-                        .toBuffer();  // Konverter til buffer først
+                        .toBuffer();
                     
-                    // Så send bufferen til prepareImageBuffer
                     const preparedBuffer = await this.prepareImageBuffer(imageBuffer);
                     await this.deck.fillKeyBuffer(i, preparedBuffer);
-                    
-                    console.log(`Lastet statisk bilde ${i + 1} av 5`);
                 } catch (error) {
                     console.error(`Feil ved lasting av statisk bilde ${i + 1}:`, error);
                     throw error;
                 }
             }
 
-            // Oppdater knapper
+            // Oppdater knapper kun for gjeldende side
             console.log('Oppdaterer knapper...');
-            for (let i = 0; i < this.devices.length; i++) {
+            const pageOffset = this.currentPage * 5;
+            const startIndex = pageOffset;
+            const endIndex = Math.min(startIndex + 5, this.devices.length);
+
+            for (let i = startIndex; i < endIndex; i++) {
                 const device = this.devices[i];
+                const displayIndex = i - pageOffset;
                 console.log(`Genererer bilde for ${device.name}...`);
                 
                 try {
                     const statusBuffer = await this.generateHTMLImage(device, true);
                     const dateBuffer = await this.generateHTMLImage(device, false);
                     
-                    await this.deck.fillKeyBuffer(i + 5, statusBuffer);
-                    await this.deck.fillKeyBuffer(i + 10, dateBuffer);
+                    await this.deck.fillKeyBuffer(displayIndex + 5, statusBuffer);
+                    await this.deck.fillKeyBuffer(displayIndex + 10, dateBuffer);
                 } catch (error) {
                     console.error(`Feil ved generering av bilder for ${device.name}:`, error);
                 }
@@ -467,7 +488,6 @@ class StreamDeckLifecycle {
 
     async showCelebrationEmoji(keyIndex) {
         try {
-            const deviceIndex = keyIndex - 5;
             const animationKey = `animation_${keyIndex}`;
             
             if (this[animationKey]) {
@@ -476,20 +496,21 @@ class StreamDeckLifecycle {
             
             // Last alle frames på forhånd
             const frames = [
-                '/Users/sondremoan/streamdeck/assets/hug-emoji_1.png',
-                '/Users/sondremoan/streamdeck/assets/hug-emoji_2.png',
-                '/Users/sondremoan/streamdeck/assets/hug-emoji_3.png',
-                '/Users/sondremoan/streamdeck/assets/hug-emoji_4.png',
-                '/Users/sondremoan/streamdeck/assets/hug-emoji_5.png',
-                '/Users/sondremoan/streamdeck/assets/hug-emoji_6.png',
-                '/Users/sondremoan/streamdeck/assets/hug-emoji_7.png',
-                '/Users/sondremoan/streamdeck/assets/hug-emoji_8.png',
-                '/Users/sondremoan/streamdeck/assets/hug-emoji_9.png',
-                '/Users/sondremoan/streamdeck/assets/hug-emoji_10.png',
-                '/Users/sondremoan/streamdeck/assets/hug-emoji_11.png',
-                '/Users/sondremoan/streamdeck/assets/hug-emoji_12.png',
-                '/Users/sondremoan/streamdeck/assets/hug-emoji_13.png'
+                './assets/hug-emoji_1.png',
+                './assets/hug-emoji_2.png',
+                './assets/hug-emoji_3.png',
+                './assets/hug-emoji_4.png',
+                './assets/hug-emoji_5.png',
+                './assets/hug-emoji_6.png',
+                './assets/hug-emoji_7.png',
+                './assets/hug-emoji_8.png',
+                './assets/hug-emoji_9.png',
+                './assets/hug-emoji_10.png',
+                './assets/hug-emoji_11.png',
+                './assets/hug-emoji_12.png',
+                './assets/hug-emoji_13.png'
             ];
+            
             const preparedFrames = await Promise.all(
                 frames.map(frame => 
                     sharp(frame)
@@ -503,7 +524,7 @@ class StreamDeckLifecycle {
             // Kjør animasjonen
             for (const frame of preparedFrames) {
                 await this.deck.fillKeyBuffer(keyIndex, frame);
-                await new Promise(resolve => setTimeout(resolve, 50)); // Redusert ventetid
+                await new Promise(resolve => setTimeout(resolve, 50));
             }
             
         } catch (error) {
@@ -617,22 +638,27 @@ class StreamDeckLifecycle {
 
     temporaryBrightnessBoost() {
         try {
-            if (this.brightnessTimeout) {
-                clearTimeout(this.brightnessTimeout);
-            }
-            
-            this.deck.setBrightness(this.BRIGHTNESS_SETTINGS.DAY_BRIGHTNESS);
-            this.addLog('Midlertidig økning av lysstyrke til 80%', 'info');
-            
-            this.brightnessTimeout = setTimeout(() => {
-                const hour = new Date().getHours();
-                if (hour >= this.BRIGHTNESS_SETTINGS.NIGHT_MODE_START || 
-                    hour < this.BRIGHTNESS_SETTINGS.NIGHT_MODE_END) {
-                    this.deck.setBrightness(this.BRIGHTNESS_SETTINGS.NIGHT_BRIGHTNESS);
-                    this.addLog('Nattmodus gjenopptatt - lysstyrke tilbake til 0%', 'info');
+            const hour = new Date().getHours();
+            const isNightMode = hour >= this.BRIGHTNESS_SETTINGS.NIGHT_MODE_START || 
+                               hour < this.BRIGHTNESS_SETTINGS.NIGHT_MODE_END;
+
+            if (isNightMode) {
+                if (this.brightnessTimeout) {
+                    clearTimeout(this.brightnessTimeout);
                 }
-                this.brightnessTimeout = null;
-            }, this.BRIGHTNESS_SETTINGS.TEMP_BOOST_DURATION);
+                
+                this.deck.setBrightness(this.BRIGHTNESS_SETTINGS.DAY_BRIGHTNESS);
+                this.addLog('Midlertidig økning av lysstyrke til 80%', 'info');
+                
+                this.brightnessTimeout = setTimeout(() => {
+                    if (hour >= this.BRIGHTNESS_SETTINGS.NIGHT_MODE_START || 
+                        hour < this.BRIGHTNESS_SETTINGS.NIGHT_MODE_END) {
+                        this.deck.setBrightness(this.BRIGHTNESS_SETTINGS.NIGHT_BRIGHTNESS);
+                        this.addLog('Nattmodus gjenopptatt - lysstyrke tilbake til 0%', 'info');
+                    }
+                    this.brightnessTimeout = null;
+                }, this.BRIGHTNESS_SETTINGS.TEMP_BOOST_DURATION);
+            }
         } catch (error) {
             this.addLog('Feil ved midlertidig lysøkning: ' + error.message, 'error');
         }
@@ -640,47 +666,53 @@ class StreamDeckLifecycle {
 
     async handleKeyPress(keyData) {
         const keyIndex = keyData.index;
-        
-        // Legg til denne linjen først - boost lysstyrken ved enhver knappetrykk
         this.temporaryBrightnessBoost();
-        
-        // Sjekk om knappen er en visningsknapp
-        if (keyIndex >= 10) {
-            this.addLog(`Knapp ${keyIndex + 1} er kun for visning av dato`, 'warning');
-            return;
+
+        // Håndter sidenavigasjon
+        if (keyIndex === 10) {  // Knapp 11 - Gå tilbake
+            if (this.currentPage === 1) {
+                this.addLog('Byttet til side 1', 'info');
+                await this.switchPage(0);
+                return;
+            }
+        } else if (keyIndex === 14) {  // Knapp 15 - Gå frem
+            if (this.currentPage === 0) {
+                this.addLog('Byttet til side 2', 'info');
+                await this.switchPage(1);
+                return;
+            }
         }
-        
-        if (keyIndex >= 5) {
-            this.addLog(`Knapp ${keyIndex + 1} er kun for visning av status`, 'warning');
-            return;
-        }
+
+        // Modifiser indeksene basert på gjeldende side
+        const pageOffset = this.currentPage * 5;
         
         if (keyIndex >= 0 && keyIndex < 5) {
-            const deviceIndex = keyIndex;
+            const deviceIndex = keyIndex + pageOffset;
             const device = this.devices[deviceIndex];
             
             if (this.activeProcesses.has(deviceIndex)) {
-                console.log(`Hopper over ${device.name} - allerede under prosessering`);
+                this.addLog(`Hopper over "${device.name}" - allerede under prosessering`, 'warning');
                 return;
             }
             
             this.activeProcesses.add(deviceIndex);
+            this.addLog(`Starter nullstilling av "${device.name}"`, 'info');
             
             try {
                 // Oppdater data først
                 this.devices[deviceIndex].lastReset = new Date().toISOString();
                 await this.saveData();
                 
-                // Generer bildene sekvensielt for å unngå konflikter
+                // Vis emoji-animasjon på riktig knapp (justert for side)
+                await this.showCelebrationEmoji(keyIndex + 5);
+                
+                // Generer og oppdater knappene med riktig sideoffset
                 const statusBuffer = await this.generateHTMLImage(device, true);
                 const dateBuffer = await this.generateHTMLImage(device, false);
                 
-                // Vis emoji og oppdater knapper
-                await this.showCelebrationEmoji(keyIndex + 5);
-                
-                // Oppdater knappene i riktig rekkefølge
-                await this.deck.fillKeyBuffer(deviceIndex + 5, statusBuffer);
-                await this.deck.fillKeyBuffer(deviceIndex + 10, dateBuffer);
+                // Bruk keyIndex (ikke deviceIndex) for å oppdatere riktig knapp
+                await this.deck.fillKeyBuffer(keyIndex + 5, statusBuffer);
+                await this.deck.fillKeyBuffer(keyIndex + 10, dateBuffer);
                 
                 this.addLog(`Vellykket nullstilling av "${device.name}"`, 'info');
                 
@@ -689,6 +721,9 @@ class StreamDeckLifecycle {
             } finally {
                 this.activeProcesses.delete(deviceIndex);
             }
+        } else if (keyIndex >= 5 && keyIndex < 15 && keyIndex !== 10 && keyIndex !== 14) {
+            // Logger for knapper som bare er for visning
+            this.addLog(`Knapp ${keyIndex + 1} er bare for visning`, 'info');
         }
     }
 
@@ -789,6 +824,84 @@ class StreamDeckLifecycle {
         } catch (error) {
             console.error('Feil ved tilkobling til StreamDeck:', error);
             this.addLog('Kunne ikke koble til StreamDeck: ' + error.message, 'error');
+            throw error;
+        }
+    }
+
+    // Legg til metode for å bytte side
+    async switchPage(newPage) {
+        if (newPage < 0 || newPage > 1) return;
+        
+        try {
+            // Forbered alle buffers for den nye siden
+            const buffers = new Map();
+            
+            // Last statiske bilder
+            for (let i = 0; i < 5; i++) {
+                const imageBuffer = await sharp(this.staticImages[newPage][i])
+                    .resize(72, 72)
+                    .removeAlpha()
+                    .toBuffer();
+                
+                const preparedBuffer = await this.prepareImageBuffer(imageBuffer);
+                buffers.set(i, preparedBuffer);
+            }
+            
+            // Forbered dynamiske bilder
+            const pageOffset = newPage * 5;
+            const startIndex = pageOffset;
+            const endIndex = Math.min(startIndex + 5, this.devices.length);
+            
+            for (let i = startIndex; i < endIndex; i++) {
+                const device = this.devices[i];
+                const displayIndex = i - pageOffset;
+                
+                const statusBuffer = await this.generateHTMLImage(device, true);
+                const dateBuffer = await this.generateHTMLImage(device, false);
+                
+                buffers.set(displayIndex + 5, statusBuffer);
+                buffers.set(displayIndex + 10, dateBuffer);
+            }
+            
+            // Oppdater currentPage før vi viser knappene
+            this.currentPage = newPage;
+            
+            // Vis alle knapper samtidig
+            const updatePromises = [];
+            for (const [index, buffer] of buffers.entries()) {
+                updatePromises.push(this.deck.fillKeyBuffer(index, buffer));
+            }
+            
+            await Promise.all(updatePromises);
+            
+        } catch (error) {
+            console.error('Feil ved bytte av side:', error);
+            this.addLog('Feil ved sidebytte: ' + error.message, 'error');
+        }
+    }
+
+    // Legg til denne nye metoden
+    async updateAllButtons() {
+        try {
+            // Oppdater statiske bilder for gjeldende side
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const imageBuffer = await sharp(this.staticImages[this.currentPage][i])
+                        .resize(72, 72)
+                        .removeAlpha()
+                        .toBuffer();
+                    
+                    const preparedBuffer = await this.prepareImageBuffer(imageBuffer);
+                    await this.deck.fillKeyBuffer(i, preparedBuffer);
+                } catch (error) {
+                    console.error(`Feil ved lasting av statisk bilde ${i + 1}:`, error);
+                }
+            }
+
+            // Oppdater dynamiske knapper for gjeldende side
+            await this.updateDynamicButtons();
+        } catch (error) {
+            console.error('Feil ved oppdatering av alle knapper:', error);
             throw error;
         }
     }

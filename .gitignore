@@ -1,0 +1,6 @@
+# Ignorer systemfiler
+.DS_Store
+Thumbs.db
+logs.json
+devices.json
+
