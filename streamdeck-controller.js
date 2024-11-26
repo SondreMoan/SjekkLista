@@ -24,8 +24,8 @@ class StreamDeckLifecycle {
                 './png/mik-pgl1.png',
                 './png/mik-pgl2.png',
                 './png/mik-met.png',
-                './png/mork-blaa.png',
-                './png/mork-blaa.png'
+                './png/nrk-mork.png',
+                './png/nrk-mork.png'
             ]
         };
         
@@ -147,16 +147,15 @@ class StreamDeckLifecycle {
                 await page.setViewportSize({ width: 72, height: 72 });
                 
                 const daysLeft = this.calculateDaysLeft(device);
-                const percentage = (daysLeft / device.lifetime) * 100;
+                let color = '#0E927C'; // Standard farge
+                let textColor = '#FFFFFF'; // Standard tekstfarge
                 
-                let color = '#0E927C';
-                let textColor = '#FFFFFF';
-                
-                if (percentage <= 20) {
-                    color = '#FF7461';
-                } else if (percentage < 40) {
-                    color = '#FFB37A';
-                    if (isStatus) textColor = '#000000';
+                // Endre farge basert på antall dager igjen
+                if (daysLeft <= 0) {
+                    color = '#FF7461'; // Rød
+                } else if (daysLeft <= 1) {
+                    color = '#FFB37A'; // Gul
+                    if (isStatus) textColor = '#000000'; // Endre tekstfarge til svart hvis status
                 }
                 
                 const html = `
