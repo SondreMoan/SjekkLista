@@ -24,8 +24,8 @@ class StreamDeckLifecycle {
                 './png/mik-pgl1.png',
                 './png/mik-pgl2.png',
                 './png/mik-met.png',
-                './png/nrk-mork.png',
-                './png/nrk-mork.png'
+                './png/mork-blaa.png',
+                './png/mork-blaa.png'
             ]
         };
         
@@ -93,6 +93,7 @@ class StreamDeckLifecycle {
         this.activeProcesses = new Set();
         this.currentPage = 0;  // Legg til sidesporing
         this.pageBuffers = new Map(); // Cache for side-buffers
+        this.isAwake = false; // Ny variabel for å spore vekket tilstand
     }
 
     async loadData() {
@@ -591,10 +592,12 @@ class StreamDeckLifecycle {
                 if (!this.brightnessTimeout) {
                     this.deck.setBrightness(this.BRIGHTNESS_SETTINGS.NIGHT_BRIGHTNESS);
                     this.addLog('Nattmodus aktivert - lysstyrke satt til 0%', 'info');
+                    this.isAwake = false; // Sett isAwake til false når nattmodus aktiveres
                 }
             } else {
                 this.deck.setBrightness(this.BRIGHTNESS_SETTINGS.DAY_BRIGHTNESS);
                 this.addLog('Dagmodus aktivert - lysstyrke satt til 80%', 'info');
+                this.isAwake = true; // Sett isAwake til true når dagmodus aktiveres
             }
         } catch (error) {
             console.error('Feil ved oppdatering av lysstyrke:', error);
@@ -613,6 +616,15 @@ class StreamDeckLifecycle {
                     clearTimeout(this.brightnessTimeout);
                 }
                 
+                // Vekker systemet hvis det ikke allerede er vekket
+                if (!this.isAwake) {
+                    this.deck.setBrightness(this.BRIGHTNESS_SETTINGS.DAY_BRIGHTNESS);
+                    this.addLog('Systemet vekket - lysstyrke satt til 80%', 'info');
+                    this.isAwake = true; // Sett til vekket
+                    return; // Avslutt her for å unngå å utføre mer
+                }
+                
+                // Hvis systemet allerede er vekket, fortsett med lysstyrkeøkning
                 this.deck.setBrightness(this.BRIGHTNESS_SETTINGS.DAY_BRIGHTNESS);
                 this.addLog('Midlertidig økning av lysstyrke til 80%', 'info');
                 
@@ -632,11 +644,33 @@ class StreamDeckLifecycle {
 
     async handleKeyPress(keyData) {
         const keyIndex = keyData.index;
-        this.temporaryBrightnessBoost();
+
+        // Sjekk om systemet er i nattmodus
+        const hour = new Date().getHours();
+        const isNightMode = hour >= this.BRIGHTNESS_SETTINGS.NIGHT_MODE_START || 
+                            hour < this.BRIGHTNESS_SETTINGS.NIGHT_MODE_END;
+
+        // Håndter nattmodus vekking
+        if (isNightMode && !this.isAwake) {
+            // Vekker systemet
+            this.deck.setBrightness(this.BRIGHTNESS_SETTINGS.DAY_BRIGHTNESS);
+            this.addLog('Systemet vekket - lysstyrke satt til 80%', 'info');
+            this.isAwake = true; // Sett til vekket
+            return; // Avslutt her for å unngå å utføre mer
+        }
+
+        // Hvis systemet ikke er vekket, gjør ingenting
+        if (!this.isAwake) {
+            return; // Ingen handlinger utføres før systemet er vekket
+        }
 
         // Håndter sidenavigasjon
         if (keyIndex === 10) {  // Knapp 11 - Gå tilbake
-            if (this.currentPage === 1) {
+            if (this.currentPage === 2) {
+                this.addLog('Byttet til side 2', 'info');
+                await this.switchPage(1);
+                return;
+            } else if (this.currentPage === 1) {
                 this.addLog('Byttet til side 1', 'info');
                 await this.switchPage(0);
                 return;
@@ -646,50 +680,54 @@ class StreamDeckLifecycle {
                 this.addLog('Byttet til side 2', 'info');
                 await this.switchPage(1);
                 return;
+            } else if (this.currentPage === 1) {
+                this.addLog('Byttet til side 3', 'info');
+                await this.switchPage(2);
+                return;
             }
         }
 
-        // Modifiser indeksene basert på gjeldende side
-        const pageOffset = this.currentPage * 5;
-        
-        if (keyIndex >= 0 && keyIndex < 5) {
-            const deviceIndex = keyIndex + pageOffset;
-            const device = this.devices[deviceIndex];
+        // Hvis systemet er vekket, fortsett med normal behandling
+        if (this.isAwake) {
+            // Modifiser indeksene basert på gjeldende side
+            const pageOffset = this.currentPage * 5;
             
-            if (this.activeProcesses.has(deviceIndex)) {
-                this.addLog(`Hopper over "${device.name}" - allerede under prosessering`, 'warning');
-                return;
+            if (keyIndex >= 0 && keyIndex < 5) {
+                const deviceIndex = keyIndex + pageOffset;
+                const device = this.devices[deviceIndex];
+                
+                if (this.activeProcesses.has(deviceIndex)) {
+                    this.addLog(`Hopper over "${device.name}" - allerede under prosessering`, 'warning');
+                    return;
+                }
+                
+                this.activeProcesses.add(deviceIndex);
+                this.addLog(`Starter nullstilling av "${device.name}"`, 'info');
+                
+                try {
+                    // Oppdater data først
+                    this.devices[deviceIndex].lastReset = new Date().toISOString();
+                    await this.saveData();
+                    
+                    // Vis emoji-animasjon på riktig knapp (justert for side)
+                    await this.showCelebrationEmoji(keyIndex + 5);
+                    
+                    // Generer og oppdater knappene med riktig sideoffset
+                    const statusBuffer = await this.generateHTMLImage(device, true);
+                    const dateBuffer = await this.generateHTMLImage(device, false);
+                    
+                    // Bruk keyIndex (ikke deviceIndex) for å oppdatere riktig knapp
+                    await this.deck.fillKeyBuffer(keyIndex + 5, statusBuffer);
+                    await this.deck.fillKeyBuffer(keyIndex + 10, dateBuffer);
+                    
+                    this.addLog(`Vellykket nullstilling av "${device.name}"`, 'info');
+                    
+                } catch (error) {
+                    this.addLog(`Feil ved nullstilling av "${device.name}": ${error.message}`, 'error');
+                } finally {
+                    this.activeProcesses.delete(deviceIndex);
+                }
             }
-            
-            this.activeProcesses.add(deviceIndex);
-            this.addLog(`Starter nullstilling av "${device.name}"`, 'info');
-            
-            try {
-                // Oppdater data først
-                this.devices[deviceIndex].lastReset = new Date().toISOString();
-                await this.saveData();
-                
-                // Vis emoji-animasjon på riktig knapp (justert for side)
-                await this.showCelebrationEmoji(keyIndex + 5);
-                
-                // Generer og oppdater knappene med riktig sideoffset
-                const statusBuffer = await this.generateHTMLImage(device, true);
-                const dateBuffer = await this.generateHTMLImage(device, false);
-                
-                // Bruk keyIndex (ikke deviceIndex) for å oppdatere riktig knapp
-                await this.deck.fillKeyBuffer(keyIndex + 5, statusBuffer);
-                await this.deck.fillKeyBuffer(keyIndex + 10, dateBuffer);
-                
-                this.addLog(`Vellykket nullstilling av "${device.name}"`, 'info');
-                
-            } catch (error) {
-                this.addLog(`Feil ved nullstilling av "${device.name}": ${error.message}`, 'error');
-            } finally {
-                this.activeProcesses.delete(deviceIndex);
-            }
-        } else if (keyIndex >= 5 && keyIndex < 15 && keyIndex !== 10 && keyIndex !== 14) {
-            // Logger for knapper som bare er for visning
-            this.addLog(`Knapp ${keyIndex + 1} er bare for visning`, 'info');
         }
     }
 
@@ -809,7 +847,7 @@ class StreamDeckLifecycle {
                 }
             }
             
-            // Generer kun dynamiske bilder
+            // Generer bilder for enheter
             const pageOffset = newPage * 5;
             const startIndex = pageOffset;
             const endIndex = Math.min(startIndex + 5, this.devices.length);
@@ -818,15 +856,48 @@ class StreamDeckLifecycle {
             for (let i = startIndex; i < endIndex; i++) {
                 const device = this.devices[i];
                 const displayIndex = i - pageOffset;
-                
-                dynamicPromises.push(
-                    (async () => {
-                        const statusBuffer = await this.generateHTMLImage(device, true);
-                        const dateBuffer = await this.generateHTMLImage(device, false);
-                        buffers.set(displayIndex + 5, statusBuffer);
-                        buffers.set(displayIndex + 10, dateBuffer);
-                    })()
-                );
+
+                // Sjekk om enheten har lifetime 0 og lastReset er null
+                if (device.lifetime === 0 && device.lastReset === null) {
+                    // Bruk standardbilde for enheter med lifetime 0 og lastReset null
+                    dynamicPromises.push(
+                        (async () => {
+                            const defaultImageBuffer = await sharp('./png/mork-blaa.png')
+                                .resize(72, 72)
+                                .removeAlpha()
+                                .raw()
+                                .toBuffer({ resolveWithObject: true });
+
+                            // Opprett en buffer for StreamDeck
+                            const streamDeckBuffer = Buffer.alloc(72 * 72 * 3); // 72x72 piksler, 3 bytes per piksel (RGB)
+
+                            // Kopier data fra defaultImageBuffer til streamDeckBuffer
+                            for (let i = 0; i < 72 * 72; i++) {
+                                const srcPos = i * 3; // Kildeposisjon i defaultImageBuffer
+                                const dstPos = i * 3; // Destinasjonsposisjon i streamDeckBuffer
+
+                                // Kopier RGB-data
+                                streamDeckBuffer[dstPos] = defaultImageBuffer.data[srcPos];     // R
+                                streamDeckBuffer[dstPos + 1] = defaultImageBuffer.data[srcPos + 1]; // G
+                                streamDeckBuffer[dstPos + 2] = defaultImageBuffer.data[srcPos + 2]; // B
+                            }
+
+                            // Sett bufferet for både status og dato
+                            buffers.set(displayIndex + 5, streamDeckBuffer);
+                            buffers.set(displayIndex + 10, streamDeckBuffer);
+                        })()
+                    );
+                } else {
+                    // Generer status- og databilder for enheter med gyldig informasjon
+                    dynamicPromises.push(
+                        (async () => {
+                            const statusBuffer = await this.generateHTMLImage(device, true);
+                            const dateBuffer = await this.generateHTMLImage(device, false);
+                            buffers.set(displayIndex + 5, statusBuffer);
+                            buffers.set(displayIndex + 10, dateBuffer);
+                        })()
+                    );
+                }
             }
             
             // Vent på at alle dynamiske bilder er generert
