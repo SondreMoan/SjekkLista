@@ -372,6 +372,11 @@ class StreamDeckLifecycle {
             console.log('Initialisering fullført');
             this.addLog('Streamdeck-kontroller startet', 'info');
 
+            // Legg til timer for å oppdatere knappene hver time
+            setInterval(() => {
+                this.updateDynamicButtons();
+            }, 3600000); // 3600000 ms = 1 time
+
         } catch (error) {
             console.error('Initialiseringsfeil:', error);
             
@@ -591,12 +596,10 @@ class StreamDeckLifecycle {
                 hour < this.BRIGHTNESS_SETTINGS.NIGHT_MODE_END) {
                 if (!this.brightnessTimeout) {
                     this.deck.setBrightness(this.BRIGHTNESS_SETTINGS.NIGHT_BRIGHTNESS);
-                    this.addLog('Nattmodus aktivert - lysstyrke satt til 0%', 'info');
                     this.isAwake = false; // Sett isAwake til false når nattmodus aktiveres
                 }
             } else {
                 this.deck.setBrightness(this.BRIGHTNESS_SETTINGS.DAY_BRIGHTNESS);
-                this.addLog('Dagmodus aktivert - lysstyrke satt til 80%', 'info');
                 this.isAwake = true; // Sett isAwake til true når dagmodus aktiveres
             }
         } catch (error) {
@@ -619,14 +622,12 @@ class StreamDeckLifecycle {
                 // Vekker systemet hvis det ikke allerede er vekket
                 if (!this.isAwake) {
                     this.deck.setBrightness(this.BRIGHTNESS_SETTINGS.DAY_BRIGHTNESS);
-                    this.addLog('Systemet vekket - lysstyrke satt til 80%', 'info');
                     this.isAwake = true; // Sett til vekket
                     return; // Avslutt her for å unngå å utføre mer
                 }
                 
                 // Hvis systemet allerede er vekket, fortsett med lysstyrkeøkning
                 this.deck.setBrightness(this.BRIGHTNESS_SETTINGS.DAY_BRIGHTNESS);
-                this.addLog('Midlertidig økning av lysstyrke til 80%', 'info');
                 
                 this.brightnessTimeout = setTimeout(() => {
                     if (hour >= this.BRIGHTNESS_SETTINGS.NIGHT_MODE_START || 
@@ -687,6 +688,11 @@ class StreamDeckLifecycle {
             }
         }
 
+           if (keyIndex >= 6 && keyIndex <= 10 || keyIndex === 12 || keyIndex === 13) {
+            this.addLog(`Knapp ${keyIndex + 1} trykket, men har ingen funksjon.`, 'warning');
+            return; // Ingen handlinger utføres for disse knappene
+        }
+
         // Hvis systemet er vekket, fortsett med normal behandling
         if (this.isAwake) {
             // Modifiser indeksene basert på gjeldende side
@@ -702,7 +708,6 @@ class StreamDeckLifecycle {
                 }
                 
                 this.activeProcesses.add(deviceIndex);
-                this.addLog(`Starter nullstilling av "${device.name}"`, 'info');
                 
                 try {
                     // Oppdater data først
