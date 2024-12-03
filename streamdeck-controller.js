@@ -53,7 +53,7 @@ class StreamDeckLifecycle {
         this.processingButtons = new Set();
         this.setupErrorHandlers();
         this.logs = [];
-        this.maxLogs = 100; // Maksimalt antall loggmeldinger vi vil beholde
+        this.maxLogs = 300; // Maksimalt antall loggmeldinger vi vil beholde
         this.logFilePath = path.join(__dirname, 'logs.json');
         this.brightnessTimeout = null;  // Legg til denne linjen
         this.browser = null;
@@ -289,8 +289,10 @@ class StreamDeckLifecycle {
     }
 
     async updateDynamicButtons(deviceIndex = null) {
+        console.log('Oppdaterer dynamiske knapper...'); // Legg til logging
         try {
             await this.ensureBrowser();
+            
             
             const pageOffset = this.currentPage * 5;
             const startIndex = pageOffset;
@@ -305,6 +307,10 @@ class StreamDeckLifecycle {
                 const statusBuffer = await this.generateHTMLImage(device, true);
                 const dateBuffer = await this.generateHTMLImage(device, false);
                 
+                // Oppdater cachen med nye bilder
+                this.pageBuffers.set(displayIndex + 5, statusBuffer);
+                this.pageBuffers.set(displayIndex + 10, dateBuffer);
+                
                 await this.deck.fillKeyBuffer(displayIndex + 5, statusBuffer);
                 await this.deck.fillKeyBuffer(displayIndex + 10, dateBuffer);
                 return;
@@ -316,6 +322,7 @@ class StreamDeckLifecycle {
                 const displayIndex = i - pageOffset;
                 const statusBuffer = await this.generateHTMLImage(device, true);
                 const dateBuffer = await this.generateHTMLImage(device, false);
+                
                 
                 await this.deck.fillKeyBuffer(displayIndex + 5, statusBuffer);
                 await this.deck.fillKeyBuffer(displayIndex + 10, dateBuffer);
@@ -372,10 +379,19 @@ class StreamDeckLifecycle {
             console.log('Initialisering fullført');
             this.addLog('Streamdeck-kontroller startet', 'info');
 
-            // Legg til timer for å oppdatere knappene hver time
+            // Legg til timer for å oppdatere knappene hvert minutt
             setInterval(() => {
-                this.updateDynamicButtons();
-            }, 3600000); // 3600000 ms = 1 time
+                const now = new Date();
+                const currentMinute = now.getMinutes();
+
+                // Sjekk om det er tid for oppdatering
+                if (currentMinute === 0 || currentMinute === 30) { // Oppdaterer ved starten av hver hele og halve time
+                    this.updateDynamicButtons();
+                }
+            }, 30000); // 30000 ms = 30 sekund
+
+            
+
 
         } catch (error) {
             console.error('Initialiseringsfeil:', error);
